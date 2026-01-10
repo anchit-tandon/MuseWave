@@ -1,0 +1,8 @@
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#app{height:100%}
+body{background:#0b0b10;color:#fff;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
+#app{display:flex;align-items:center;justify-content:center;position:relative}
+canvas{width:100vw;height:100vh;display:block}
+#ui{position:absolute;left:16px;bottom:16px;display:flex;gap:12px;align-items:center}
+#play{background:#ff5c93;border:none;padding:8px 12px;color:#fff;border-radius:6px;cursor:pointer}
+#time{font-size:14px;color:#d6d6d6}

@@ -559,96 +559,7 @@ const buildLyricsFallback = (context: any): { lyrics: string } => {
   };
 };
 
-const createMockPlan = (fullPrompt: any, creativitySeed: number): MusicPlan => {
-  const genre = fullPrompt?.genres?.[0] || 'electronic';
-  const bpmRanges: Record<string, [number, number]> = {
-    house: [120, 130],
-    techno: [125, 135],
-    trance: [130, 140],
-    'drum & bass': [170, 180],
-    dubstep: [140, 150],
-    ambient: [60, 90],
-    trap: [70, 85],
-    'future bass': [140, 160],
-  };
-  const [minBpm, maxBpm] = bpmRanges[genre] || [120, 130];
-  const bpm = minBpm + Math.floor(Math.random() * Math.max(1, maxBpm - minBpm));
 
-  const possibleKeys =
-    genre === 'ambient'
-      ? ['C Minor', 'A Minor', 'F Major']
-      : genre === 'techno'
-      ? ['A Minor', 'E Minor', 'D Minor']
-      : ['C Major', 'G Major', 'F Major', 'A Minor'];
-
-  const basePrompt = fullPrompt?.musicPrompt?.substring(0, 48) || 'MuseWave Track';
-  const lyrics = typeof fullPrompt?.lyrics === 'string' ? fullPrompt.lyrics : '';
-
-  return {
-    title: basePrompt,
-    genre,
-    bpm,
-    key: pickRandom(possibleKeys),
-    overallStructure: 'Intro - Verse - Chorus - Breakdown - Drop - Outro',
-    vocalStyle: lyrics ? 'Lead vocals with harmonies' : 'Instrumental',
-    lyrics,
-    randomSeed: creativitySeed,
-    sections: [
-      {
-        name: 'Intro',
-        sectionType: 'intro',
-        durationBars: 8,
-        chordProgression: ['Cm7', 'Abmaj7'],
-        drumPattern: { kick: [1], snare: [], hihat: [0.5, 1, 1.5] },
-        synthLine: { pattern: 'pads', timbre: 'warm' },
-        leadMelody: [],
-        effects: { reverb: 0.4, compressionThreshold: -12, stereoWidth: 0.6 },
-        lyrics: undefined,
-      },
-      {
-        name: 'Verse',
-        sectionType: 'verse',
-        durationBars: 16,
-        chordProgression: ['Cm7', 'Abmaj7', 'Fm7', 'Bb7'],
-        drumPattern: { kick: [1, 1.5], snare: [2], hihat: [0.5, 1, 1.5, 2] },
-        synthLine: { pattern: 'arpeggio-up', timbre: 'glassy' },
-        leadMelody: [
-          { note: 'C5', duration: 0.5, ornamentation: 'light' },
-          { note: 'D5', duration: 0.5, ornamentation: 'light' },
-        ],
-        effects: { reverb: 0.5, compressionThreshold: -10, stereoWidth: 0.85 },
-        lyrics: lyrics || null,
-      },
-      {
-        name: 'Chorus',
-        sectionType: 'chorus',
-        durationBars: 16,
-        chordProgression: ['Abmaj7', 'Fm7', 'Cm7', 'Bb7'],
-        drumPattern: { kick: [1, 1.5], snare: [2], hihat: [0.5, 1, 1.5, 2] },
-        synthLine: { pattern: 'arpeggio-up', timbre: 'bright' },
-        leadMelody: [
-          { note: 'C5', duration: 0.5, ornamentation: 'heavy' },
-          { note: 'G5', duration: 0.5, ornamentation: 'heavy' },
-        ],
-        effects: { reverb: 0.6, compressionThreshold: -10, stereoWidth: 0.9 },
-        lyrics: lyrics || null,
-      },
-      {
-        name: 'Outro',
-        sectionType: 'outro',
-        durationBars: 8,
-        chordProgression: ['Cm7', 'Abmaj7'],
-        drumPattern: { kick: [1], snare: [], hihat: [0.5, 1] },
-        synthLine: { pattern: 'pads', timbre: 'warm' },
-        leadMelody: [],
-        effects: { reverb: 0.7, compressionThreshold: -8, stereoWidth: 0.95 },
-        lyrics: undefined,
-      },
-    ],
-    stems: { vocals: Boolean(lyrics.trim()), drums: true, bass: true, instruments: true },
-    cuePoints: { introEnd: 32, dropStart: 64, outroStart: 96 },
-  };
-};
 
 const sanitizePlan = (raw: any): MusicPlan | null => {
   if (!raw || typeof raw !== 'object') return null;
@@ -672,17 +583,15 @@ export const enhancePrompt = async (context: any) => {
     // Track prompt to avoid repetition
     const wasRecent = aiCache.recentSuggestions.wasRecentlySuggested('prompts', remote.prompt);
     if (wasRecent) {
-      console.warn('[Uniqueness] Prompt was recently suggested, regenerating');
-      return buildEnhancedPromptFallback(uniqueContext);
+      console.warn('[Uniqueness] Prompt was recently suggested');
     }
     aiCache.recentSuggestions.add('prompts', remote.prompt);
     console.log('[Unique] New enhanced prompt generated');
     return { prompt: remote.prompt };
   }
 
-  const fallback = buildEnhancedPromptFallback(uniqueContext);
-  aiCache.recentSuggestions.add('prompts', fallback.prompt);
-  return fallback;
+  // No mock fallbacks in production mode — fail fast so caller can surface the backend error
+  throw new Error('[MuseWave] AI backend did not return an enhanced prompt');
 };
 
 export const suggestGenres = async (context: any) => {
@@ -717,9 +626,7 @@ export const suggestGenres = async (context: any) => {
     }
   }
 
-  const fallback = buildGenreFallback(uniqueContext);
-  aiCache.recentSuggestions.add('genres', fallback.genres);
-  return fallback;
+  throw new Error('[MuseWave] AI backend did not return genre suggestions');
 };
 
 export const suggestArtists = async (context: any) => {
@@ -757,9 +664,7 @@ export const suggestArtists = async (context: any) => {
     }
   }
 
-  const fallback = buildArtistFallback(uniqueContext);
-  aiCache.recentSuggestions.add('artists', fallback.artists);
-  return fallback;
+  throw new Error('[MuseWave] AI backend did not return artist suggestions');
 };
 
 export const suggestLanguages = async (context: any) => {
@@ -796,9 +701,7 @@ export const suggestLanguages = async (context: any) => {
     }
   }
 
-  const fallback = buildLanguageFallback(uniqueContext);
-  aiCache.recentSuggestions.add('languages', fallback.languages);
-  return fallback;
+  throw new Error('[MuseWave] AI backend did not return language suggestions');
 };
 
 export const suggestInstruments = async (context: any) => {
@@ -833,9 +736,7 @@ export const suggestInstruments = async (context: any) => {
     }
   }
 
-  const fallback = buildInstrumentFallback(uniqueContext);
-  aiCache.recentSuggestions.add('instruments', fallback.instruments);
-  return fallback;
+  throw new Error('[MuseWave] AI backend did not return instrument suggestions');
 };
 
 export const enhanceLyrics = async (context: any) => {
@@ -857,7 +758,7 @@ export const enhanceLyrics = async (context: any) => {
     return { lyrics: remote.lyrics };
   }
 
-  return buildLyricsFallback(uniqueContext);
+  throw new Error('[MuseWave] AI backend did not return enhanced lyrics');
 };
 
 export async function generateMusicPlan(
@@ -881,8 +782,9 @@ export async function generateMusicPlan(
     aiCache.set('generateMusicPlan', cacheKey, plan, ULTRA_CACHE_TTL.MUSIC_PLAN);
     return plan;
   }
-
-  return createMockPlan(fullPrompt, creativitySeed);
+  
+  // No mock fallback allowed in production-only mode
+  throw new Error('[MuseWave] AI backend did not return a valid music plan');
 }
 
 export async function auditMusicPlan(plan: MusicPlan, originalRequest: any) {
