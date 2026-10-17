@@ -37,8 +37,8 @@ const navItems = [
 
 function MainSidebar() {
     const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { logout, username } = useAuth();
-    const displayName = username || 'MuseWave User';
+    const { logout } = useAuth();
+    const displayName = 'MuseWave Owner';
 
     const navLinkClasses = "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground";
     const activeNavLinkClasses = "bg-secondary text-foreground";
