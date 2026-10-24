@@ -1,5 +1,9 @@
-# Ignore serverless functions to stay within Hobby plan limits
-api/
+# Ignore serverless functions to stay within Hobby plan limits.
+# The one exception is the PIN sign-in check (api/auth.mjs and its helper
+# api/_pinauth.mjs, which is not a function itself because of the "_").
+api/*
+!api/auth.mjs
+!api/_pinauth.mjs
 backend/
 backend-complete/
 backend-neo/

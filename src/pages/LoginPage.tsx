@@ -1,36 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated) navigate('/', { replace: true });
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!/^\d{4}$/.test(pin)) {
+      setError('Type your 4-digit PIN, numbers only.');
+      return;
+    }
     setIsLoading(true);
-
-    // Brief delay for UX (simulates auth check)
-    setTimeout(() => {
-      const success = login(username, password);
-      setIsLoading(false);
-
-      if (success) {
-        navigate('/');
-      } else {
-        setError('Invalid username or password');
-        setPassword('');
-      }
-    }, 400);
+    const result = await login(pin);
+    setIsLoading(false);
+    if (result.ok) {
+      navigate('/', { replace: true });
+    } else {
+      setError(result.error || 'That did not work. Please try again.');
+      setPin('');
+    }
   };
 
   return (
@@ -42,68 +42,51 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               MuseWave
             </h1>
-            <p className="text-gray-400 text-sm">Sign in to create amazing music</p>
+            <p className="text-gray-400 text-sm">Enter your 4-digit PIN to sign in</p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* PIN form */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-gray-200 block">
-                Username
+              <label htmlFor="pin" className="text-sm font-medium text-gray-200 block">
+                PIN
               </label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                id="pin"
+                name="pin"
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]{4}"
+                maxLength={4}
+                autoComplete="current-password"
+                autoFocus
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="4 digits"
                 required
                 disabled={isLoading}
-                className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
-                autoComplete="username"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'pin-error' : undefined}
+                className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500 text-center tracking-[0.5em] text-lg"
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-200 block">
-                Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  required
-                  disabled={isLoading}
-                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500 pr-10"
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 bg-gray-800/60 p-1.5 rounded-md hover:bg-gray-700/80 focus:outline-none focus:ring-2 focus:ring-purple-500/60 transition"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div
+                id="pin-error"
+                role="alert"
+                className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+              >
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || pin.length !== 4}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Checking...' : 'Sign In'}
             </Button>
           </form>
         </div>
